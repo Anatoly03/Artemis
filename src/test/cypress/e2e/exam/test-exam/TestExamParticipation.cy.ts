@@ -1,6 +1,4 @@
-import { QuizExercise } from 'app/entities/quiz/quiz-exercise.model';
 import { Exam } from 'app/entities/exam.model';
-import { BASE_API, GET } from '../../../support/constants';
 import { CypressExamBuilder, convertCourseAfterMultiPart } from '../../../support/requests/CourseManagementRequests';
 import { artemis } from '../../../support/ArtemisTesting';
 import dayjs from 'dayjs/esm';
@@ -27,6 +25,7 @@ const examNavigation = artemis.pageobjects.exam.navigationBar;
 const onlineEditor = artemis.pageobjects.exercise.programming.editor;
 const modelingEditor = artemis.pageobjects.exercise.modeling.editor;
 const multipleChoiceQuiz = artemis.pageobjects.exercise.quiz.multipleChoice;
+const textEditor = artemis.pageobjects.exercise.text.editor;
 
 // Common primitives
 const textExerciseTitle = 'Cypress text exercise';
@@ -172,7 +171,6 @@ function checkExerciseTitle(title: string) {
 }
 
 function makeTextExerciseSubmission() {
-    const textEditor = artemis.pageobjects.exercise.text.editor;
     cy.fixture('loremIpsum.txt').then((submissionText) => {
         textEditor.typeSubmission(submissionText);
     });
