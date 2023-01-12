@@ -9,14 +9,15 @@ import multipleChoiceTemplate from '../../fixtures/quiz_exercise_fixtures/multip
 import { Course } from 'app/entities/course.model';
 import { Interception } from 'cypress/types/net-stubbing';
 
-// Requests
-const courseRequests = artemis.requests.courseManagement;
-
-// User management
+// Users
 const users = artemis.users;
-const student = users.getStudentOne();
+const admin = users.getAdmin();
+const studentOne = users.getStudentOne();
 
-// Pageobjects
+// Requests
+const courseManagementRequests = artemis.requests.courseManagement;
+
+// PageObjects
 const courses = artemis.pageobjects.course.list;
 const courseOverview = artemis.pageobjects.course.overview;
 const examStartEnd = artemis.pageobjects.exam.startEnd;
@@ -35,8 +36,8 @@ describe('Exam participation', () => {
     let quizExercise: QuizExercise;
 
     before(() => {
-        cy.login(users.getAdmin());
-        courseRequests.createCourse(true).then((response) => {
+        cy.login(admin);
+        courseManagementRequests.createCourse(true).then((response) => {
             course = convertCourseAfterMultiPart(response);
             const examContent = new CypressExamBuilder(course)
                 .visibleDate(dayjs().subtract(3, 'days'))
@@ -45,25 +46,34 @@ describe('Exam participation', () => {
                 .examMaxPoints(40)
                 .numberOfExercises(4)
                 .build();
-            courseRequests.createExam(examContent).then((examResponse) => {
+            courseManagementRequests.createExam(examContent).then((examResponse) => {
                 exam = examResponse.body;
-                courseRequests.registerStudentForExam(exam, student);
-                courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-                    courseRequests.createTextExercise({ exerciseGroup: groupResponse.body }, textExerciseTitle);
+                courseManagementRequests.registerStudentForExam(exam, studentOne);
+                courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+                    courseManagementRequests.createTextExercise({ exerciseGroup: groupResponse.body }, textExerciseTitle);
                 });
-                courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-                    courseRequests.createProgrammingExercise({ exerciseGroup: groupResponse.body }, undefined, false, undefined, undefined, undefined, undefined, packageName);
+                courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+                    courseManagementRequests.createProgrammingExercise(
+                        { exerciseGroup: groupResponse.body },
+                        undefined,
+                        false,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        packageName,
+                    );
                 });
-                courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-                    courseRequests.createModelingExercise({ exerciseGroup: groupResponse.body });
+                courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+                    courseManagementRequests.createModelingExercise({ exerciseGroup: groupResponse.body });
                 });
-                courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-                    courseRequests.createQuizExercise({ exerciseGroup: groupResponse.body }, [multipleChoiceTemplate]).then((quizResponse) => {
+                courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+                    courseManagementRequests.createQuizExercise({ exerciseGroup: groupResponse.body }, [multipleChoiceTemplate]).then((quizResponse) => {
                         quizExercise = quizResponse.body;
                     });
                 });
-                courseRequests.generateMissingIndividualExams(exam);
-                courseRequests.prepareExerciseStartForExam(exam);
+                courseManagementRequests.generateMissingIndividualExams(exam);
+                courseManagementRequests.prepareExerciseStartForExam(exam);
             });
         });
     });
@@ -83,7 +93,7 @@ describe('Exam participation', () => {
     });
 
     function startParticipation() {
-        cy.login(student, '/');
+        cy.login(studentOne, '/');
         courses.openCourse(course.id!);
         courseOverview.openExamsTab();
         courseOverview.openExam(exam.id!);
@@ -151,8 +161,8 @@ describe('Exam participation', () => {
 
     after(() => {
         if (course) {
-            cy.login(users.getAdmin());
-            courseRequests.deleteCourse(course.id!);
+            cy.login(admin);
+            courseManagementRequests.deleteCourse(course.id!);
         }
     });
 });

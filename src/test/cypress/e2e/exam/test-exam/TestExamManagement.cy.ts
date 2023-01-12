@@ -4,13 +4,15 @@ import { CypressExamBuilder, convertCourseAfterMultiPart } from '../../../suppor
 import { artemis } from '../../../support/ArtemisTesting';
 import { generateUUID } from '../../../support/utils';
 
+// Users
+const users = artemis.users;
+const admin = users.getAdmin();
+const studentOne = users.getStudentOne();
+
 // Requests
 const courseManagementRequests = artemis.requests.courseManagement;
 
-// User management
-const users = artemis.users;
-
-// Pageobjects
+// PageObjects
 const navigationBar = artemis.pageobjects.navigationBar;
 const courseManagement = artemis.pageobjects.course.management;
 const examManagement = artemis.pageobjects.exam.management;
@@ -27,10 +29,10 @@ describe('Exam management', () => {
     let exam: Exam;
 
     before(() => {
-        cy.login(users.getAdmin());
+        cy.login(admin);
         courseManagementRequests.createCourse().then((response) => {
             course = convertCourseAfterMultiPart(response);
-            courseManagementRequests.addStudentToCourse(course, users.getStudentOne());
+            courseManagementRequests.addStudentToCourse(course, studentOne);
             const examConfig = new CypressExamBuilder(course).title(examTitle).testExam().build();
             courseManagementRequests.createExam(examConfig).then((examResponse) => {
                 exam = examResponse.body;
@@ -39,7 +41,7 @@ describe('Exam management', () => {
     });
 
     beforeEach(() => {
-        cy.login(users.getAdmin());
+        cy.login(admin);
     });
 
     it('Adds an exercise group with a text exercise', () => {
@@ -66,7 +68,7 @@ describe('Exam management', () => {
 
     after(() => {
         if (course) {
-            cy.login(users.getAdmin());
+            cy.login(admin);
             courseManagementRequests.deleteCourse(course.id!);
         }
     });

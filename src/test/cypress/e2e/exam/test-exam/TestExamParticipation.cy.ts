@@ -9,15 +9,16 @@ import { Interception } from 'cypress/types/net-stubbing';
 import { generateUUID } from '../../../support/utils';
 import { CypressCredentials } from 'src/test/cypress/support/users';
 
-// Requests
-const courseRequests = artemis.requests.courseManagement;
-
-// User management
+// Users
 const users = artemis.users;
-const student1 = users.getStudentOne();
-const student2 = users.getStudentTwo();
+const admin = users.getAdmin();
+const studentOne = users.getStudentOne();
+const studentTwo = users.getStudentTwo();
 
-// Pageobjects
+// Requests
+const courseManagementRequests = artemis.requests.courseManagement;
+
+// PageObjects
 const courses = artemis.pageobjects.course.list;
 const courseOverview = artemis.pageobjects.course.overview;
 const examStartEnd = artemis.pageobjects.exam.startEnd;
@@ -40,8 +41,8 @@ describe('Exam participation', () => {
     let exam: Exam;
 
     before(() => {
-        cy.login(users.getAdmin());
-        courseRequests.createCourse(true).then((response) => {
+        cy.login(admin);
+        courseManagementRequests.createCourse(true).then((response) => {
             course = convertCourseAfterMultiPart(response);
             const examContent = new CypressExamBuilder(course)
                 .title(examTitle)
@@ -53,7 +54,7 @@ describe('Exam participation', () => {
                 .numberOfExercises(10)
                 .correctionRounds(0)
                 .build();
-            courseRequests.createExam(examContent).then((examResponse) => {
+            courseManagementRequests.createExam(examContent).then((examResponse) => {
                 exam = examResponse.body;
                 addGroupWithTextExercise(exam);
                 addGroupWithTextExercise(exam);
@@ -72,7 +73,7 @@ describe('Exam participation', () => {
     });
 
     it('Participates as a student in a registered test exam', () => {
-        startParticipation(student1, course, exam);
+        startParticipation(studentOne, course, exam);
         openExercise(0);
         makeTextExerciseSubmission();
         openExercise(1);
@@ -99,7 +100,7 @@ describe('Exam participation', () => {
     });
 
     it('Checks if switching test exam tabs works', () => {
-        startParticipation(student2, course, exam);
+        startParticipation(studentTwo, course, exam);
         for (let j = 0; j < 20; j++) {
             const i = between(0, titleArray.length);
             openExercise(i);
@@ -112,23 +113,23 @@ describe('Exam participation', () => {
 
     after(() => {
         if (course) {
-            cy.login(users.getAdmin());
-            courseRequests.deleteCourse(course.id!);
+            cy.login(admin);
+            courseManagementRequests.deleteCourse(course.id!);
         }
     });
 });
 
 function addGroupWithTextExercise(exam: Exam) {
-    courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseRequests.createTextExercise({ exerciseGroup: groupResponse.body }, textExerciseTitle).then((response) => {
+    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+        courseManagementRequests.createTextExercise({ exerciseGroup: groupResponse.body }, textExerciseTitle).then((response) => {
             titleArray.push(response.body.title);
         });
     });
 }
 
 function addGroupWithProgrammingExercise(exam: Exam) {
-    courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseRequests
+    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+        courseManagementRequests
             .createProgrammingExercise({ exerciseGroup: groupResponse.body }, undefined, false, undefined, undefined, undefined, undefined, packageName)
             .then((response) => {
                 titleArray.push(response.body.title!);
@@ -137,16 +138,16 @@ function addGroupWithProgrammingExercise(exam: Exam) {
 }
 
 function addGroupWithModelingExercise(exam: Exam) {
-    courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseRequests.createModelingExercise({ exerciseGroup: groupResponse.body }).then((response) => {
+    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+        courseManagementRequests.createModelingExercise({ exerciseGroup: groupResponse.body }).then((response) => {
             titleArray.push(response.body.title!);
         });
     });
 }
 
 function addGroupWithQuizExercise(exam: Exam) {
-    courseRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseRequests.createQuizExercise({ exerciseGroup: groupResponse.body }, [multipleChoiceTemplate]).then((response) => {
+    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
+        courseManagementRequests.createQuizExercise({ exerciseGroup: groupResponse.body }, [multipleChoiceTemplate]).then((response) => {
             titleArray.push(response.body.title);
             quizArray.push(response.body.quizQuestions![0].id);
         });
