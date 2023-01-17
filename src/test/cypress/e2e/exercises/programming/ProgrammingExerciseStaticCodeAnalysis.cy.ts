@@ -29,7 +29,7 @@ describe('Static code analysis tests', () => {
     it('Configures SCA grading and makes a successful submission with SCA errors', () => {
         configureStaticCodeAnalysisGrading();
         startParticipationInProgrammingExercise(course.id!, exercise.id!, studentOne);
-        makeSuccessfulSubmissionWithScaErrors();
+        makeSuccessfulSubmissionWithScaErrors(exercise.id!);
     });
 
     after(() => {
@@ -56,8 +56,8 @@ describe('Static code analysis tests', () => {
     /**
      * Makes a submission, which passes all tests, but has some static code analysis issues.
      */
-    function makeSuccessfulSubmissionWithScaErrors() {
-        makeSubmissionAndVerifyResults(editorPage, exercise.packageName!, scaSubmission, () => {
+    function makeSuccessfulSubmissionWithScaErrors(exerciseID: number) {
+        makeSubmissionAndVerifyResults(exerciseID, editorPage, exercise.packageName!, scaSubmission, () => {
             editorPage.getResultScore().contains('50%').and('be.visible').click();
             scaFeedback.shouldShowPointChart();
             // We have to verify those static texts here. If we don't verify those messages the only difference between the SCA and normal programming exercise

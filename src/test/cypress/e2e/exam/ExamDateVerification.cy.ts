@@ -88,7 +88,8 @@ describe('Exam date verification', () => {
                 courseManagementRequests.registerStudentForExam(exam, student);
                 courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
                     exerciseGroup = groupResponse.body;
-                    courseManagementRequests.createTextExercise({ exerciseGroup }).then(() => {
+                    courseManagementRequests.createTextExercise({ exerciseGroup }).then((exerciseResponse) => {
+                        const exercise = exerciseResponse.body;
                         courseManagementRequests.generateMissingIndividualExams(exam);
                         courseManagementRequests.prepareExerciseStartForExam(exam);
                         cy.login(student, `/courses/${course.id}/exams`);
@@ -98,7 +99,7 @@ describe('Exam date verification', () => {
                         examStartEnd.startExam();
                         examNavigationBar.openExerciseAtIndex(0);
                         cy.fixture('loremIpsum.txt').then((submission) => {
-                            textEditor.typeSubmission(submission);
+                            textEditor.typeSubmission(exercise.id, submission);
                         });
                         examNavigationBar.clickSave();
                     });
@@ -121,7 +122,8 @@ describe('Exam date verification', () => {
                 courseManagementRequests.registerStudentForExam(exam, student);
                 courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
                     exerciseGroup = groupResponse.body;
-                    courseManagementRequests.createTextExercise({ exerciseGroup }).then(() => {
+                    courseManagementRequests.createTextExercise({ exerciseGroup }).then((exerciseResponse) => {
+                        const exercise = exerciseResponse.body;
                         courseManagementRequests.generateMissingIndividualExams(exam);
                         courseManagementRequests.prepareExerciseStartForExam(exam);
                         cy.login(student, `/courses/${course.id}/exams`);
@@ -130,7 +132,7 @@ describe('Exam date verification', () => {
                         examStartEnd.startExam();
                         examNavigationBar.openExerciseAtIndex(0);
                         cy.fixture('loremIpsum.txt').then((submissionText) => {
-                            textEditor.typeSubmission(submissionText);
+                            textEditor.typeSubmission(exercise.id, submissionText);
                         });
                         examNavigationBar.clickSave();
                         if (examEnd.isAfter(dayjs())) {

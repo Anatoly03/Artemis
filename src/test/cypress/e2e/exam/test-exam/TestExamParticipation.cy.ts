@@ -2,12 +2,12 @@ import { Exam } from 'app/entities/exam.model';
 import { CypressExamBuilder, convertCourseAfterMultiPart } from '../../../support/requests/CourseManagementRequests';
 import { artemis } from '../../../support/ArtemisTesting';
 import dayjs from 'dayjs/esm';
-import submission from '../../../fixtures/programming_exercise_submissions/all_successful/submission.json';
-import multipleChoiceTemplate from '../../../fixtures/quiz_exercise_fixtures/multipleChoiceQuiz_template.json';
+import allSuccessful from '../../../fixtures/programming_exercise_submissions/all_successful/submission.json';
+import buildError from '../../../fixtures/programming_exercise_submissions/build_error/submission.json';
 import { Course } from 'app/entities/course.model';
-import { Interception } from 'cypress/types/net-stubbing';
 import { generateUUID } from '../../../support/utils';
-import { CypressCredentials } from 'src/test/cypress/support/users';
+import { EXERCISE_TYPE } from '../../../support/constants';
+import { AdditionalData, Exercise } from 'src/test/cypress/support/pageobjects/exam/ExamParticipation';
 
 // Users
 const users = artemis.users;
@@ -19,24 +19,16 @@ const studentTwo = users.getStudentTwo();
 const courseManagementRequests = artemis.requests.courseManagement;
 
 // PageObjects
-const courses = artemis.pageobjects.course.list;
-const courseOverview = artemis.pageobjects.course.overview;
-const examStartEnd = artemis.pageobjects.exam.startEnd;
-const examNavigation = artemis.pageobjects.exam.navigationBar;
-const onlineEditor = artemis.pageobjects.exercise.programming.editor;
-const modelingEditor = artemis.pageobjects.exercise.modeling.editor;
-const multipleChoiceQuiz = artemis.pageobjects.exercise.quiz.multipleChoice;
-const textEditor = artemis.pageobjects.exercise.text.editor;
+const examParticipation = artemis.pageobjects.exam.participation;
+const exerciseGroupCreation = artemis.pageobjects.exam.exerciseGroupCreation;
 
 // Common primitives
-const textExerciseTitle = 'Cypress text exercise';
-const packageName = 'de.test';
 const examTitle = 'test-exam' + generateUUID();
+const textFixture = 'loremIpsum.txt';
 
-const titleArray: Array<string> = [];
-const quizArray: Array<number> = [];
+const exerciseArray: Array<Exercise> = [];
 
-describe('Exam participation', () => {
+describe('Test exam participation', () => {
     let course: Course;
     let exam: Exam;
 
@@ -56,59 +48,49 @@ describe('Exam participation', () => {
                 .build();
             courseManagementRequests.createExam(examContent).then((examResponse) => {
                 exam = examResponse.body;
-                addGroupWithTextExercise(exam);
-                addGroupWithTextExercise(exam);
-                addGroupWithTextExercise(exam);
+                addGroupWithExercise(exam, EXERCISE_TYPE.Text, { textFixture });
+                addGroupWithExercise(exam, EXERCISE_TYPE.Text, { textFixture });
+                addGroupWithExercise(exam, EXERCISE_TYPE.Text, { textFixture });
 
-                addGroupWithProgrammingExercise(exam);
-                addGroupWithProgrammingExercise(exam);
+                addGroupWithExercise(exam, EXERCISE_TYPE.Programming, { submission: allSuccessful, expectedScore: 100 });
+                addGroupWithExercise(exam, EXERCISE_TYPE.Programming, { submission: buildError, expectedScore: 0 });
 
-                addGroupWithModelingExercise(exam);
-                addGroupWithModelingExercise(exam);
+                addGroupWithExercise(exam, EXERCISE_TYPE.Quiz, { quizExerciseID: 0 });
+                addGroupWithExercise(exam, EXERCISE_TYPE.Quiz, { quizExerciseID: 0 });
 
-                addGroupWithQuizExercise(exam);
-                addGroupWithQuizExercise(exam);
+                addGroupWithExercise(exam, EXERCISE_TYPE.Modeling);
+                addGroupWithExercise(exam, EXERCISE_TYPE.Modeling);
             });
         });
     });
 
     it('Participates as a student in a registered test exam', () => {
-        startParticipation(studentOne, course, exam);
-        openExercise(0);
-        makeTextExerciseSubmission();
-        openExercise(1);
-        makeTextExerciseSubmission();
-        openExercise(2);
-        makeTextExerciseSubmission();
-        openExercise(3);
-        makeTextExerciseSubmission();
-        openExercise(4);
-        makeProgrammingExerciseSubmission();
-        openExercise(5);
-        makeProgrammingExerciseSubmission();
-        openExercise(6);
-        makeModelingExerciseSubmission();
-        openExercise(7);
-        makeModelingExerciseSubmission();
-        openExercise(8);
-        makeQuizExerciseSubmission(quizArray[0]);
-        openExercise(9);
-        makeQuizExerciseSubmission(quizArray[1]);
-
-        handInEarly();
-        verifyFinalPage();
+        examParticipation.startParticipation(studentOne, course, exam);
+        for (let j = 0; j < exerciseArray.length; j++) {
+            const exercise = exerciseArray[j];
+            examParticipation.openExercise(j);
+            examParticipation.makeSubmission(exercise.id, exercise.type, exercise.additionalData);
+        }
+        examParticipation.handInEarly();
+        for (let j = 0; j < exerciseArray.length; j++) {
+            const exercise = exerciseArray[j];
+            examParticipation.verifyExerciseTitleOnFinalPage(exercise.id, exercise.title);
+            if (exercise.type === EXERCISE_TYPE.Text) {
+                examParticipation.verifyTextExerciseOnFinalPage(exercise.additionalData!.textFixture!);
+            }
+        }
+        examParticipation.checkExamTitle(examTitle);
     });
 
     it('Checks if switching test exam tabs works', () => {
-        startParticipation(studentTwo, course, exam);
+        examParticipation.startParticipation(studentTwo, course, exam);
         for (let j = 0; j < 20; j++) {
-            const i = between(0, titleArray.length);
-            openExercise(i);
-            checkExerciseTitle(titleArray[i]);
+            const i = between(0, exerciseArray.length - 1);
+            examParticipation.openExercise(i);
+            examParticipation.checkExerciseTitle(exerciseArray[i].id, exerciseArray[i].title);
         }
 
-        handInEarly();
-        verifyFinalPage();
+        examParticipation.handInEarly();
     });
 
     after(() => {
@@ -119,98 +101,17 @@ describe('Exam participation', () => {
     });
 });
 
-function addGroupWithTextExercise(exam: Exam) {
-    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseManagementRequests.createTextExercise({ exerciseGroup: groupResponse.body }, textExerciseTitle).then((response) => {
-            titleArray.push(response.body.title);
-        });
+function addGroupWithExercise(exam: Exam, exerciseType: EXERCISE_TYPE, additionalData?: AdditionalData) {
+    exerciseGroupCreation.addGroupWithExercise(exam, 'Exercise ' + generateUUID(), exerciseType, (response) => {
+        if (exerciseType == EXERCISE_TYPE.Quiz) {
+            additionalData!.quizExerciseID = response.body.quizQuestions![0].id;
+        }
+        addExerciseToArray(exerciseArray, exerciseType, response, additionalData);
     });
 }
 
-function addGroupWithProgrammingExercise(exam: Exam) {
-    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseManagementRequests
-            .createProgrammingExercise({ exerciseGroup: groupResponse.body }, undefined, false, undefined, undefined, undefined, undefined, packageName)
-            .then((response) => {
-                titleArray.push(response.body.title!);
-            });
-    });
-}
-
-function addGroupWithModelingExercise(exam: Exam) {
-    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseManagementRequests.createModelingExercise({ exerciseGroup: groupResponse.body }).then((response) => {
-            titleArray.push(response.body.title!);
-        });
-    });
-}
-
-function addGroupWithQuizExercise(exam: Exam) {
-    courseManagementRequests.addExerciseGroupForExam(exam).then((groupResponse) => {
-        courseManagementRequests.createQuizExercise({ exerciseGroup: groupResponse.body }, [multipleChoiceTemplate]).then((response) => {
-            titleArray.push(response.body.title);
-            quizArray.push(response.body.quizQuestions![0].id);
-        });
-    });
-}
-
-function startParticipation(student: CypressCredentials, course: Course, exam: Exam) {
-    cy.login(student, '/');
-    courses.openCourse(course.id!);
-    courseOverview.openExamsTab();
-    courseOverview.openExam(exam.id!);
-    cy.url().should('contain', `/exams/${exam.id}`);
-    examStartEnd.startExam();
-}
-
-function openExercise(index: number) {
-    examNavigation.openExerciseAtIndex(index);
-}
-
-function checkExerciseTitle(title: string) {
-    cy.get('.exercise-title').should('contain', title);
-}
-
-function makeTextExerciseSubmission() {
-    cy.fixture('loremIpsum.txt').then((submissionText) => {
-        textEditor.typeSubmission(submissionText);
-    });
-    cy.wait(1000);
-}
-
-function makeProgrammingExerciseSubmission() {
-    onlineEditor.toggleCompressFileTree();
-    onlineEditor.deleteFile('Client.java');
-    onlineEditor.deleteFile('BubbleSort.java');
-    onlineEditor.deleteFile('MergeSort.java');
-    onlineEditor.typeSubmission(submission, 'de.test');
-    onlineEditor.submit();
-    onlineEditor.getResultScore().contains('100%').and('be.visible');
-}
-
-function makeModelingExerciseSubmission() {
-    modelingEditor.addComponentToModel(1, false);
-    modelingEditor.addComponentToModel(2, false);
-    modelingEditor.addComponentToModel(3, false);
-}
-
-function makeQuizExerciseSubmission(quizExerciseID: number) {
-    multipleChoiceQuiz.tickAnswerOption(0, quizExerciseID);
-    multipleChoiceQuiz.tickAnswerOption(2, quizExerciseID);
-}
-
-function handInEarly() {
-    examNavigation.handInEarly();
-    examStartEnd.finishExam().then((request: Interception) => {
-        expect(request.response!.statusCode).to.eq(200);
-    });
-}
-
-function verifyFinalPage() {
-    cy.contains(textExerciseTitle).should('be.visible');
-    cy.fixture('loremIpsum.txt').then((submissionText) => {
-        cy.contains(submissionText).should('be.visible');
-    });
+function addExerciseToArray(exerciseArray: Array<Exercise>, type: EXERCISE_TYPE, response: any, additionalData?: AdditionalData) {
+    exerciseArray.push({ title: response.body.title, type, id: response.body.id, additionalData });
 }
 
 function between(min: number, max: number) {
