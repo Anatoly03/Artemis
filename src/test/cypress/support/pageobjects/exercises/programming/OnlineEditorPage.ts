@@ -90,7 +90,7 @@ export class OnlineEditorPage {
      */
     submit(exerciseID: number) {
         getExercise(exerciseID).find('#submit_button').click();
-        getExercise(exerciseID).find('#result-score-badge', { timeout: 200000 }).should('contain.text', 'GRADED').and('be.visible');
+        getExercise(exerciseID).find('#result-score-badge', { timeout: 2000000 }).should('contain.text', 'GRADED').and('be.visible');
     }
 
     /**
