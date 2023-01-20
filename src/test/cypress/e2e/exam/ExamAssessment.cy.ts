@@ -6,8 +6,8 @@ import { artemis } from '../../support/ArtemisTesting';
 import { CypressAssessmentType, CypressExamBuilder, convertCourseAfterMultiPart } from '../../support/requests/CourseManagementRequests';
 import partiallySuccessful from '../../fixtures/programming_exercise_submissions/partially_successful/submission.json';
 import dayjs, { Dayjs } from 'dayjs/esm';
-import textSubmission from '../../fixtures/text_exercise_submission/text_exercise_submission.json';
-import multipleChoiceQuizTemplate from '../../fixtures/quiz_exercise_fixtures/multipleChoiceQuiz_template.json';
+import textSubmission from '../../fixtures/exercise/text/text_exercise_submission.json';
+import multipleChoiceQuizTemplate from '../../fixtures/exercise/quiz/multipleChoiceQuiz_template.json';
 import { makeSubmissionAndVerifyResults } from '../../support/pageobjects/exercises/programming/OnlineEditorPage';
 
 // requests

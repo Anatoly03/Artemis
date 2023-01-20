@@ -5,7 +5,7 @@ import { CypressExamBuilder, convertCourseAfterMultiPart } from '../../support/r
 import { artemis } from '../../support/ArtemisTesting';
 import dayjs from 'dayjs/esm';
 import submission from '../../fixtures/programming_exercise_submissions/all_successful/submission.json';
-import multipleChoiceTemplate from '../../fixtures/quiz_exercise_fixtures/multipleChoiceQuiz_template.json';
+import multipleChoiceTemplate from '../../fixtures/exercise/quiz/multipleChoiceQuiz_template.json';
 import { Course } from 'app/entities/course.model';
 import { Interception } from 'cypress/types/net-stubbing';
 
