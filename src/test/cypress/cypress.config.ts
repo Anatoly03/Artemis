@@ -1,3 +1,5 @@
+import { registerMultilanguageCoveragePlugin } from '@heddendorp/cypress-plugin-multilanguage-coverage';
+import path from 'path';
 import { defineConfig } from 'cypress';
 
 export default defineConfig({
@@ -16,8 +18,17 @@ export default defineConfig({
         toConsole: true,
     },
     e2e: {
-        setupNodeEvents(on) {
+        setupNodeEvents(on, config) {
+            process.env.CYPRESS_COLLECT_COVERAGE === 'true' &&
+                registerMultilanguageCoveragePlugin({ workingDirectory: path.join(__dirname), saveRawCoverage: true, distributionFile: '../../../build/libs/Artemis-6.0.0.war' })(
+                    on,
+                    config,
+                );
             on('task', {
+                log(message: string) {
+                    console.log('[37m', 'LOG: ', message, '[0m');
+                    return null;
+                },
                 error(message: string) {
                     console.error('\x1b[31m', 'ERROR: ', message, '\x1b[0m');
                     return null;
